@@ -1,40 +1,40 @@
-阶段一：定义状态 (core/state.py)
+#### 阶段 I: 基础配置与工具定义 (准备阶段)
 
-阶段二：定义工具和模型 (tools/local_plugins.py & api/llm_interface.py)
+| **序号** | **文件路径**             | **核心内容**                                                 | **目标**                                       |
+| -------- | ------------------------ | ------------------------------------------------------------ | ---------------------------------------------- |
+| **1.**   | `requirements.txt`       | 依赖库列表                                                   | 确保环境搭建顺利。                             |
+| **2.**   | `config/settings.py`     | 变量定义                                                     | 存储 LLM API Key, Base URL 等运行时配置。      |
+| **3.**   | `tools/local_plugins.py` | **使用 `@tool` 装饰器**定义本地插件函数 (如 `read_file`, `exec_script` 等)。 | 定义 Agent 的“手脚”能力，并生成 JSON Schema。  |
+| **4.**   | `api/llm_interface.py`   | LLM 初始化逻辑                                               | 根据配置实例化 `ChatOpenAI` 或其他 LLM Model。 |
 
-1. **定义工具 (Tools)**：使用 LangChain 的 `@tool` 装饰器。
-2. **初始化 LLM**：使用用户提供的 API 配置。
+#### 阶段 II: LangGraph 核心逻辑 (Orchestrator 实现)
 
-阶段三：构建图 (core/graph.py & core/nodes.py)
+这一阶段是 Agent 架构的“大脑”和“主循环”。
 
-这是核心的主控逻辑。图中有两个主要节点：`call_model` 和 `call_tool`。
+| **序号** | **文件路径**    | **核心内容**          | **目标**                                                     |
+| -------- | --------------- | --------------------- | ------------------------------------------------------------ |
+| **5.**   | `core/state.py` | **定义 `GraphState`** | 使用 `TypedDict` 定义图的状态，最少包含 `messages: Annotated[List[BaseMessage], update_messages]`。 |
+| **6.**   | `core/nodes.py` | **定义节点函数**      | 包含两个主要函数：`call_model(state)` (思考) 和 `call_tool(state)` (行动)。 |
+| **7.**   | `core/nodes.py` | **定义路由函数**      | 编写 `decide_next_step(state)`，判断 LLM 响应是工具调用还是结束。 |
+| **8.**   | `core/graph.py` | **构建 `StateGraph`** | 导入节点和路由，使用 `builder.add_node()`, `builder.add_conditional_edges()`, `builder.add_edge()` 组装主循环。 |
 
-1. **定义节点函数 (core/nodes.py)**：
-   - **`call_model` 节点** (负责思考/推理)：
-     - 接收 `GraphState`。
-     - 调用 LLM (`llm.invoke(state['messages'])`)。
-     - 将 LLM 的响应（包含文本或 `tool_calls`）存回 `messages`。
-   - **`call_tool` 节点** (负责行动/执行)：
-     - 接收 `GraphState`。
-     - 从 LLM 的最新消息中解析出 `tool_calls`。
-     - 执行对应的本地函数（`read_local_file(...)`）。
-     - 创建新的 **`ToolMessage`** (执行结果)，并存回 `messages`。
-2. **定义路由函数 (Decision)**：
-   - 检查 `call_model` 节点的输出。
-   - **如果** LLM 响应中包含 `tool_calls`，返回 `"continue_action"`（转向 `call_tool` 节点）。
-   - **否则**（纯文本回复或结束信号），返回 `"end_conversation"`（转向 `END`）。
-3. **组装图 (core/graph.py)**
+#### 阶段 III: 程序入口与运行 (组装与测试)
 
-阶段四：运行 (main.py)
+| **序号** | **文件路径** | **核心内容**             | **目标**                                                     |
+| -------- | ------------ | ------------------------ | ------------------------------------------------------------ |
+| **9.**   | `main.py`    | **程序入口**             | 导入配置和 `StateGraph`。                                    |
+| **10.**  | `main.py`    | **运行逻辑**             | 接收用户输入，初始化状态，调用 `app.invoke()` 运行 Agent，并处理最终输出。 |
+| **11.**  | 示例和测试   | 编写一个简单的测试案例。 | 验证 Agent 能否成功调用本地工具并完成循环。                  |
 
-| 架构图模块    | 核心功能                         | LangChain / LangGraph 对应组件  | 技术栈/实现细节                                             |
-| ------------- | -------------------------------- | ------------------------------- | ----------------------------------------------------------- |
-| Orchestrator  | 任务循环、状态维护、决策流转     | LangGraph StateGraph            | Python 代码实现状态机（节点和边）。                         |
-| LLM API       | 模型推理、函数调用/工具调用      | BaseChatModel (如 ChatOpenAI)   | 接收用户提供的 API Key 和 Base URL 进行初始化。             |
-| PromptEng     | 组装 Prompt (系统指令、工具描述) | BaseChatModel .bind_tools()     | LangChain 自动将 Python 函数转换为 JSON Schema 并传入 LLM。 |
-| Tool Registry | 插件定义 (Schema)                | @tool 装饰器                    | 将本地 Python 函数标记为 LLM 可用的工具。                   |
-| Executor      | 本地代码执行                     | AgentExecutor 或自定义 ToolNode | 接收 LLM 传来的函数名和参数，并执行本地 Python 函数。       |
-| History       | 对话历史/上下文                  | GraphState                      | 使用 TypedDict 定义图的状态，包含 messages 列表。           |
+建议严格按照以下顺序编写代码，确保每一步都能立即验证：
+
+1. **环境和配置 (`1, 2`)**: 先把依赖和 API Key/URL 配置好。
+2. **定义工具 (`3`)**: 这是 Agent 的能力基石，确保工具函数能够正常运行。
+3. **LLM 接口 (`4`)**: 确保你可以成功连接到用户提供的 LLM API。
+4. **定义状态 (`5`)**: 确定数据在流程中如何流转。
+5. **定义节点和路由 (`6, 7`)**: 编写思考和行动的核心逻辑。
+6. **构建图 (`8`)**: 将所有节点和路由连接起来，形成可运行的 Agent 流程。
+7. **主程序运行 (`9, 10, 11`)**: 编写程序入口，进行端到端测试。
 
 ```
 agent_project/
