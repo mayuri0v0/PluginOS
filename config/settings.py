@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     api_key: str = Field(default="", description="LLM API Key")
     base_url: str = Field(default="", description="LLM Base URL, 例如 https://api.openai.com/v1")
-    model: str = Field(default="gpt-4o-mini", description="模型名称")
+    model: str = Field(default="", description="模型名称")
     temperature: float = Field(default=0.0, ge=0.0, le=2.0, description="采样温度")
     request_timeout: Optional[float] = Field(default=60.0, description="请求超时时间（秒）")
 
