@@ -1,5 +1,7 @@
-langgraph
 langchain-core
+typing-extensions
+langgraph
+langchain
 langchain-openai
 pydantic>=2.6.0
 pydantic-settings>=2.3.0

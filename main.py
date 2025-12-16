@@ -1,34 +1,19 @@
-import argparse
-import json
-from typing import Any, Dict
-from langchain_core.messages import HumanMessage
-from config.settings import get_settings
-from core.graph import create_graph
-
-
-def run_agent(prompt: str) -> Dict[str, Any]:
-    app = create_graph()
-    state = {"messages": [HumanMessage(content=prompt)]}
-    return app.invoke(state)
+from core.agent import build_agent, run_demo
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LangGraph Agent Demo")
-    parser.add_argument("prompt", type=str, nargs="?", help="用户输入的任务或问题")
-    args = parser.parse_args()
+    """
+    项目入口：构建 agent，并运行一个简单 demo。
 
-    if not args.prompt:
-        parser.error("请提供 prompt，如: python main.py \"读取 README\"")
+    真正的业务逻辑都拆分到了 core/config/tools 等模块中，
+    这里仅作为 CLI / 脚本入口。
+    """
+    # 如果你只想要 agent 对象用于后续集成，可以这样用：
+    agent = build_agent(show_graph=False)
 
-    settings = get_settings()
-    if not settings.api_key:
-        print("警告：未设置 LLM_API_KEY，某些模型可能无法调用。")
-
-    result = run_agent(args.prompt)
-    messages = result.get("messages", [])
-    print(json.dumps([m.dict() for m in messages], ensure_ascii=False, indent=2))
+    # 当前 demo：直接跑一遍 echo 工具调用
+    run_demo('调用echo工具打印"Hello, World"')
 
 
 if __name__ == "__main__":
     main()
-

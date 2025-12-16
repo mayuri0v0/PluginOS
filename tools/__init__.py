@@ -1,4 +1,4 @@
-from .local_plugins import TOOLS, TOOL_REGISTRY
+from .local_plugins import tools, tools_registry
 
-__all__ = ["TOOLS", "TOOL_REGISTRY"]
+__all__ = ["tools", "tools_registry"]
 
