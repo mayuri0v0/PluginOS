@@ -3,6 +3,7 @@ typing-extensions
 langgraph
 langchain
 langchain-openai
+langchain-deepseek
 pydantic>=2.6.0
 pydantic-settings>=2.3.0
 openai>=1.35.0
